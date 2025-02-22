@@ -66,6 +66,43 @@ class Similarity:
         return Pearson_sim
     
 
+class Efficient_Similarity:
+    def __init__(self, ratings_matrix):
+        """
+        :param ratings_matrix: [num_users x num_items], with NaN for missing values
+        """
+        self.ratings_matrix = ratings_matrix  # shape: [num_users, num_items]
+        self.similarity_matrix = None
+
+    def compute_similarity(self, weight_type="item-based", metric="cosine"):
+        """
+        Compute similarity matrix for items or users.
+        :param weight_type: "item-based" or "user-based"
+        :param metric: "cosine" or "pearson"
+        :return: NumPy 2D array
+        """
+        
+        if weight_type == "item-based":
+            data_matrix = self.ratings_matrix.T  # [num_items x num_users]
+        elif weight_type == "user-based":
+            data_matrix = self.ratings_matrix  # [num_users x num_items]
+        data_matrix = np.nan_to_num(data_matrix)                # use 0 to fill Nan 
+        # print(data_matrix)
+        if metric == "cosine":
+            norms = np.linalg.norm(data_matrix, axis=1, keepdims=True)      
+            norms[norms == 0] = 1       # avoid 0 division
+            self.similarity_matrix = (data_matrix @ data_matrix.T) / (norms @ norms.T)
+
+        elif metric == "pearson":
+            mean_ratings = np.mean(data_matrix, axis=1, keepdims=True)    # mean for each row
+            centered_matrix = data_matrix - mean_ratings
+            norms = np.sqrt(np.sum(centered_matrix**2, axis=1, keepdims=True)) 
+            norms[norms == 0] = 1 
+            self.similarity_matrix = (centered_matrix @ centered_matrix.T) / (norms @ norms.T)
+
+        return self.similarity_matrix       # [num_items x num_items] or [num_users x num_users]
+    
+
 if __name__ == '__main__':
     
     sim = Similarity()
